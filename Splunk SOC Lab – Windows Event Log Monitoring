@@ -1,0 +1,166 @@
+# Splunk Enterprise Lab – Windows Event Log Monitoring (SOC Hands-on)
+
+## Objective
+Criação de um laboratório funcional no estilo SOC usando o Splunk Enterprise e o Splunk Universal Forwarder para coletar, ingerir e analisar logs de eventos de segurança do Windows, validando a visibilidade do log de ponta a ponta e os recursos básicos de detecção.
+
+* Log collection
+* SIEM ingestion
+* Windows authentication monitoring
+* Initial threat analysis
+
+---
+
+## Lab Architecture
+
+* **Splunk Enterprise**: Ubuntu Server VM
+* **Universal Forwarder**: Windows Desktop VM
+* **Hypervisor**: VMware
+* **Log Source**: Windows Security Event Logs
+* **Listening Port**: 9997/TCP
+
+```
+[ Windows VM ] --(UF / TCP 9997)--> [ Splunk Enterprise - Ubuntu ]
+```
+
+---
+
+## Step 1 – Splunk Enterprise Installation (Ubuntu Server)
+
+1. Install Ubuntu Server
+2. Download Splunk Enterprise (.deb)
+3. Install Splunk:
+
+   ```bash
+   sudo dpkg -i splunk-*.deb
+   ```
+4. Create a dedicated user (best practice):
+
+   ```bash
+   sudo useradd splunkadmin
+   sudo chown -R splunkadmin:splunkadmin /opt/splunk
+   ```
+5. Start Splunk:
+
+   ```bash
+   sudo -u splunkadmin /opt/splunk/bin/splunk start --accept-license
+   ```
+
+---
+
+## Step 2 – Enable Listening Port (9997)
+
+Verify Splunk is listening for forwarders:
+
+```bash
+sudo -u splunkadmin /opt/splunk/bin/splunk cmd splunkd listen 9997
+```
+
+Confirm port status:
+
+```bash
+sudo ss -tulnp | grep 9997
+```
+
+Expected output:
+
+```
+LISTEN 0 128 0.0.0.0:9997
+```
+
+---
+
+## Step 3 – Windows Universal Forwarder Installation
+
+1. Download Splunk Universal Forwarder for Windows
+
+2. During installation:
+
+   * Choose **On‑Premise Splunk Enterprise**
+   * Splunk Server: `<Splunk_Server_IP>:9997`
+   * Run as **Local System**
+   * Create UF admin username (required by installer)
+
+3. Enable Windows Event Logs:
+
+   * Security Log ✅
+   * System Log
+   * Application Log
+
+---
+
+## Step 4 – Validate Forwarder Connection
+
+On Splunk Enterprise:
+
+```bash
+sudo -u splunkadmin /opt/splunk/bin/splunk list forward-server
+```
+
+Check input status:
+
+```bash
+sudo -u splunkadmin /opt/splunk/bin/splunk cmd splunkd print-modinput-status
+```
+
+---
+
+## Step 5 – Verify Data in Splunk Web
+
+Access Splunk Web:
+
+```
+http://<Splunk_Server_IP>:8000
+```
+
+Search:
+
+```spl
+index=* sourcetype=WinEventLog:Security
+```
+
+---
+
+## Step 6 – Validation Events Observed
+
+The following **Windows Security Event IDs** were successfully ingested:
+
+* **5379** – Credential Manager credentials were read
+* **4624** – Successful logon
+* **4672** – Special privileges assigned to new logon
+
+This confirms:
+✔️ Event forwarding
+✔️ Security log ingestion
+✔️ Authentication visibility
+✔️ Privileged access detection
+
+---
+
+## SOC Relevance
+
+This lab simulates a real SOC use case:
+
+* Monitoring authentication events
+* Detecting privileged logons
+* Supporting investigations and alert correlation
+
+Example correlation logic:
+
+> EventCode=4624 followed by EventCode=4672 may indicate privileged access and should be reviewed.
+
+---
+
+## Next Steps (Planned)
+
+* Simulate brute-force attacks (4625)
+* Create detection queries
+* Map events to MITRE ATT&CK
+* Build SOC dashboards
+
+---
+
+## Author
+
+Christian Quadros
+
+Hands-on Cybersecurity | SOC | SIEM | Splunk
